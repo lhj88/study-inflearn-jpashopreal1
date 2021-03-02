@@ -9,5 +9,4 @@ public class Jpashopreal1Application {
 	public static void main(String[] args) {
 		SpringApplication.run(Jpashopreal1Application.class, args);
 	}
-
 }

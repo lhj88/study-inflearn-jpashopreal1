@@ -1,6 +1,8 @@
 package jpabook.jpashopreal1.repository;
 
-import jpabook.jpashopreal1.domain.Member;
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import jpabook.jpashopreal1.domain.*;
 import jpabook.jpashopreal1.domain.Order;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -12,10 +14,19 @@ import javax.persistence.criteria.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static jpabook.jpashopreal1.domain.QMember.member;
+import static jpabook.jpashopreal1.domain.QOrder.*;
+
 @Repository
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 public class OrderRepository {
     private final EntityManager em;
+    private final JPAQueryFactory query;
+
+    public OrderRepository(EntityManager em) {
+        this.em = em;
+        this.query = new JPAQueryFactory(em);
+    }
 
     public void save(Order order){
         em.persist(order);
@@ -91,15 +102,43 @@ public class OrderRepository {
     }
 
     public List<Order> findAll(OrderSearch orderSearch){
-        return em.createQuery("select o from Order o join o.member m" +
+        /*return em.createQuery("select o from Order o join o.member m" +
                 " where o.status =:status" +
                 " and m.name like :name", Order.class)
                 .setParameter("status", orderSearch.getOrderStatus())
                 .setParameter("name", orderSearch.getMemberName())
                 .setFirstResult(0)
                 .setMaxResults(10)
-                .getResultList();
+                .getResultList();*/
+        //QOrder order = QOrder.order;
+        //QMember member = QMember.member;
+
+        //JPAQueryFactory query = new JPAQueryFactory(em);
+        return query.select(order)
+                .from(order)
+                .join(order.member, member)
+                .where(statusEq(orderSearch.getOrderStatus())
+                        , nameLike(orderSearch.getMemberName()))
+                .limit(1000)
+                .fetch();
     }
+
+    private BooleanExpression nameLike(String memberName) {
+        if(!StringUtils.hasText(memberName)){
+            return null;
+        }
+        return member.name.like(memberName);
+    }
+
+    private BooleanExpression statusEq(OrderStatus statusCond){
+        if(statusCond == null){
+            return null;
+        }
+
+        return order.status.eq(statusCond);
+    }
+
+
 
     public List<Order> findAllWithMemberDelivery() {
         return em.createQuery(
@@ -127,4 +166,6 @@ public class OrderRepository {
                 " join fetch oi.item i ", Order.class)
                 .getResultList();
     }
+
+
 }
